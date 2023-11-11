@@ -176,7 +176,8 @@ pub struct ViewUniform {
     viewport: Vec4,
     frustum: [Vec4; 6],
     color_grading: ColorGrading,
-    mip_bias: f32,
+    // 2^(mip bias)
+    pow_2_mip_bias: f32,
     render_layers: u32,
 }
 
@@ -438,7 +439,7 @@ pub fn prepare_view_uniforms(
                 viewport,
                 frustum,
                 color_grading: extracted_view.color_grading,
-                mip_bias: mip_bias.unwrap_or(&MipBias(0.0)).0,
+                pow_2_mip_bias: 2.0f32.powf(mip_bias.unwrap_or(&MipBias(0.0)).0),
                 render_layers: maybe_layers.copied().unwrap_or_default().bits(),
             }),
         };

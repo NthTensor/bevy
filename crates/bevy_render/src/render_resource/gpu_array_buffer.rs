@@ -68,10 +68,13 @@ impl<T: GpuArrayBufferable> GpuArrayBuffer<T> {
         }
     }
 
-    pub fn write_buffer(&mut self, device: &RenderDevice, queue: &RenderQueue) {
+    pub fn write_buffer(&mut self, device: &RenderDevice, queue: &RenderQueue) -> bool {
         match self {
             GpuArrayBuffer::Uniform(buffer) => buffer.write_buffer(device, queue),
-            GpuArrayBuffer::Storage(buffer) => buffer.write_buffer(device, queue),
+            GpuArrayBuffer::Storage((buffer, vec)) => {
+                buffer.set(mem::take(vec));
+                buffer.write_buffer(device, queue)
+            }
         }
     }
 
@@ -92,6 +95,13 @@ impl<T: GpuArrayBufferable> GpuArrayBuffer<T> {
         match self {
             GpuArrayBuffer::Uniform(buffer) => buffer.binding(),
             GpuArrayBuffer::Storage(buffer) => buffer.binding(),
+        }
+    }
+
+    pub fn buffer(&self) -> Option<&Buffer> {
+        match self {
+            GpuArrayBuffer::Uniform(buffer) => buffer.buffer(),
+            GpuArrayBuffer::Storage((buffer, _)) => buffer.buffer(),
         }
     }
 
