@@ -47,9 +47,7 @@ struct VertexOutput {
 #ifdef VERTEX_COLORS
     @location(5) color: vec4<f32>,
 #endif
-#ifdef VERTEX_OUTPUT_INSTANCE_INDEX
     @location(6) @interpolate(flat) instance_index: u32,
-#endif
 }
 
 struct FragmentOutput {

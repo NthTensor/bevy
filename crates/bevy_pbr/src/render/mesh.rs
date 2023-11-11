@@ -35,7 +35,7 @@ use bevy_render::{
     Extract, ExtractSchedule, Render, RenderApp, RenderSet,
 };
 use bevy_transform::components::GlobalTransform;
-use bevy_utils::{tracing::error, Entry, HashMap, Hashed};
+use bevy_utils::{nonmax::NonMaxU32, tracing::error, Entry, HashMap, Hashed};
 use std::cell::Cell;
 use thread_local::ThreadLocal;
 
@@ -218,10 +218,15 @@ pub struct MeshUniform {
     pub inverse_transpose_model_a: [Vec4; 2],
     pub inverse_transpose_model_b: f32,
     pub flags: u32,
+    pub material_index: u32,
 }
 
 impl MeshUniform {
-    pub fn new(mesh_transforms: &MeshTransforms, maybe_lightmap_uv_rect: Option<Rect>) -> Self {
+    pub fn new(
+        mesh_transforms: &MeshTransforms,
+        maybe_lightmap_uv_rect: Option<Rect>,
+        material_index: u32,
+    ) -> Self {
         let (inverse_transpose_model_a, inverse_transpose_model_b) =
             mesh_transforms.transform.inverse_transpose_3x3();
         Self {
@@ -231,6 +236,7 @@ impl MeshUniform {
             inverse_transpose_model_a,
             inverse_transpose_model_b,
             flags: mesh_transforms.flags,
+            material_index,
         }
     }
 }
@@ -252,7 +258,7 @@ bitflags::bitflags! {
 pub struct RenderMeshInstance {
     pub transforms: MeshTransforms,
     pub mesh_asset_id: AssetId<Mesh>,
-    pub material_bind_group_id: AtomicMaterialBindGroupId,
+    pub material_bind_group_meta: MaterialBindGroupMeta,
     pub shadow_caster: bool,
     pub automatic_batching: bool,
 }
@@ -324,7 +330,7 @@ pub fn extract_meshes(
                     mesh_asset_id: handle.id(),
                     transforms,
                     shadow_caster: !not_shadow_caster,
-                    material_bind_group_id: AtomicMaterialBindGroupId::default(),
+                    material_bind_group_meta: MaterialBindGroupMeta::default(),
                     automatic_batching: !no_automatic_batching,
                 },
             ));
@@ -459,7 +465,12 @@ impl GetBatchData for MeshPipeline {
     type Param = (SRes<RenderMeshInstances>, SRes<RenderLightmaps>);
     // The material bind group ID, the mesh ID, and the lightmap ID,
     // respectively.
-    type CompareData = (MaterialBindGroupId, AssetId<Mesh>, Option<AssetId<Image>>);
+    type CompareData = (
+        Option<BindGroupId>,
+        Option<NonMaxU32>,
+        AssetId<Mesh>,
+        Option<AssetId<Image>>,
+    );
 
     type BufferData = MeshUniform;
 
@@ -474,12 +485,20 @@ impl GetBatchData for MeshPipeline {
             MeshUniform::new(
                 &mesh_instance.transforms,
                 maybe_lightmap.map(|lightmap| lightmap.uv_rect),
+                mesh_instance
+                    .material_bind_group_meta
+                    .index
+                    .as_ref()
+                    .map(|index| index.get())
+                    .unwrap_or_default(),
             ),
-            mesh_instance.should_batch().then_some((
-                mesh_instance.material_bind_group_id.get(),
-                mesh_instance.mesh_asset_id,
-                maybe_lightmap.map(|lightmap| lightmap.image),
-            )),
+            mesh_instance.automatic_batching.then(|| {
+                (
+                    mesh_instance.material_bind_group_meta.bind_group_id,
+                    mesh_instance.material_bind_group_meta.dynamic_offset,
+                    mesh_instance.mesh_asset_id,
+                )
+            }),
         ))
     }
 }
@@ -658,8 +677,6 @@ impl SpecializedMeshPipeline for MeshPipeline {
 
         // Let the shader code know that it's running in a mesh pipeline.
         shader_defs.push("MESH_PIPELINE".into());
-
-        shader_defs.push("VERTEX_OUTPUT_INSTANCE_INDEX".into());
 
         if layout.contains(Mesh::ATTRIBUTE_POSITION) {
             shader_defs.push("VERTEX_POSITIONS".into());
