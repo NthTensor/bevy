@@ -32,8 +32,6 @@ use bevy_render::{
 use bevy_utils::{nonmax::NonMaxU32, tracing::error, HashMap, HashSet};
 use std::hash::Hash;
 use std::marker::PhantomData;
-use std::sync::atomic::{AtomicU32, Ordering};
-use std::{hash::Hash, num::NonZeroU32};
 
 use self::{irradiance_volume::IrradianceVolume, prelude::EnvironmentMapLight};
 
@@ -654,9 +652,7 @@ pub fn queue_material_meshes<M: Material>(
                 }
             };
 
-            mesh_instance
-                .material_bind_group_meta
-                .set(material.get_bind_group_meta());
+            mesh_instance.material_bind_group_meta = material.get_bind_group_meta();
 
             match material.properties.alpha_mode {
                 AlphaMode::Opaque => {

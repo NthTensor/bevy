@@ -1,8 +1,7 @@
 use crate::{
-    AtomicMaterialBindGroupId, MaterialBindGroupId, NotShadowCaster, NotShadowReceiver,
-    PreviousGlobalTransform, Shadow, ViewFogUniformOffset, ViewLightProbesUniformOffset,
-    ViewLightsUniformOffset, CLUSTERED_FORWARD_STORAGE_BUFFER_COUNT, MAX_CASCADES_PER_LIGHT,
-    MAX_DIRECTIONAL_LIGHTS,
+    NotShadowCaster, NotShadowReceiver, PreviousGlobalTransform, Shadow, ViewFogUniformOffset,
+    ViewLightProbesUniformOffset, ViewLightsUniformOffset, CLUSTERED_FORWARD_STORAGE_BUFFER_COUNT,
+    MAX_CASCADES_PER_LIGHT, MAX_DIRECTIONAL_LIGHTS,
 };
 use bevy_app::{Plugin, PostUpdate};
 use bevy_asset::{load_internal_asset, AssetId, Handle};
@@ -265,7 +264,7 @@ pub struct RenderMeshInstance {
 
 impl RenderMeshInstance {
     pub fn should_batch(&self) -> bool {
-        self.automatic_batching && self.material_bind_group_id.get().is_some()
+        self.automatic_batching && self.material_bind_group_meta.bind_group_id.is_some()
     }
 }
 
@@ -497,6 +496,7 @@ impl GetBatchData for MeshPipeline {
                     mesh_instance.material_bind_group_meta.bind_group_id,
                     mesh_instance.material_bind_group_meta.dynamic_offset,
                     mesh_instance.mesh_asset_id,
+                    maybe_lightmap.map(|lightmap| lightmap.image),
                 )
             }),
         ))

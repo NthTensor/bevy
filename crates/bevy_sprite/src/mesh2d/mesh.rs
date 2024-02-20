@@ -31,7 +31,7 @@ use bevy_render::{
     Extract, ExtractSchedule, Render, RenderApp, RenderSet,
 };
 use bevy_transform::components::GlobalTransform;
-use bevy_utils::{nonmax::NonMaxU32, EntityHashMap};
+use bevy_utils::nonmax::NonMaxU32;
 
 use crate::Material2dBindGroupMeta;
 
@@ -349,7 +349,7 @@ impl GetBatchData for Mesh2dPipeline {
         mesh_instances: &SystemParamItem<Self::Param>,
         entity: Entity,
     ) -> Option<(Self::BufferData, Option<Self::CompareData>)> {
-        let mesh_instance = mesh_instances.get(entity)?;
+        let mesh_instance = mesh_instances.get(&entity)?;
         Some((
             Mesh2dUniform::new(
                 &mesh_instance.transforms,

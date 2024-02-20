@@ -32,7 +32,7 @@ use bevy_render::{
     Extract, ExtractSchedule, Render, RenderApp, RenderSet,
 };
 use bevy_transform::components::{GlobalTransform, Transform};
-use bevy_utils::{nonmax::NonMaxU32, EntityHashMap, FloatOrd, HashMap, HashSet};
+use bevy_utils::{nonmax::NonMaxU32, FloatOrd, HashMap, HashSet};
 use std::hash::Hash;
 use std::marker::PhantomData;
 

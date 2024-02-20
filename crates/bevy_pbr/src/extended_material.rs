@@ -4,8 +4,8 @@ use bevy_render::{
     mesh::MeshVertexBufferLayout,
     render_asset::RenderAssets,
     render_resource::{
-        AsBindGroup, AsBindGroupError, BindGroupLayout, RenderPipelineDescriptor, Shader,
-        ShaderRef, SpecializedMeshPipelineError, UnpreparedBindGroup,
+        AsBindGroup, AsBindGroupError, BindGroupLayout, GpuArrayBuffer, RenderPipelineDescriptor,
+        Shader, ShaderRef, SpecializedMeshPipelineError, UnpreparedBindGroup,
     },
     renderer::RenderDevice,
     texture::{FallbackImage, Image},
@@ -110,9 +110,14 @@ impl_type_path!((in bevy_pbr::extended_material) ExtendedMaterial<B: Material, E
 
 impl<B: Material, E: MaterialExtension> AsBindGroup for ExtendedMaterial<B, E> {
     type Data = (<B as AsBindGroup>::Data, <E as AsBindGroup>::Data);
+    type ConvertedShaderType = (
+        <B as AsBindGroup>::ConvertedShaderType,
+        <E as AsBindGroup>::ConvertedShaderType,
+    );
 
     fn unprepared_bind_group(
         &self,
+        buffer: &GpuArrayBuffer<Self::ConvertedShaderType>,
         layout: &BindGroupLayout,
         render_device: &RenderDevice,
         images: &RenderAssets<Image>,
@@ -122,9 +127,17 @@ impl<B: Material, E: MaterialExtension> AsBindGroup for ExtendedMaterial<B, E> {
         let UnpreparedBindGroup {
             mut bindings,
             data: base_data,
-        } = B::unprepared_bind_group(&self.base, layout, render_device, images, fallback_image)?;
+        } = B::unprepared_bind_group(
+            &self.base,
+            buffer,
+            layout,
+            render_device,
+            images,
+            fallback_image,
+        )?;
         let extended_bindgroup = E::unprepared_bind_group(
             &self.extension,
+            buffer,
             layout,
             render_device,
             images,
@@ -152,7 +165,10 @@ impl<B: Material, E: MaterialExtension> AsBindGroup for ExtendedMaterial<B, E> {
     }
 }
 
-impl<B: Material, E: MaterialExtension> Material for ExtendedMaterial<B, E> {
+impl<B: Material, E: MaterialExtension> Material for ExtendedMaterial<B, E>
+where
+    for<'a> <E as AsBindGroup>::ConvertedShaderType: From<&'a ExtendedMaterial<B, E>>,
+{
     fn vertex_shader() -> ShaderRef {
         match E::vertex_shader() {
             ShaderRef::Default => B::vertex_shader(),

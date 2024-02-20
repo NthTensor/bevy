@@ -403,7 +403,7 @@ pub fn derive_as_bind_group(ast: syn::DeriveInput) -> Result<TokenStream> {
     };
 
     let buffer_bind_group_layout_entry = if converted_shader_type_.is_some() {
-        quote! { #render_path::render_resource::GpuArrayBuffer::<<Self as AsBindGroup>::ConvertedShaderType>::binding_layout(0, #render_path::render_resource::ShaderStages::VERTEX_FRAGMENT, render_device), }
+        quote! { #render_path::render_resource::GpuArrayBuffer::<<Self as AsBindGroup>::ConvertedShaderType>::binding_layout(render_device), }
     } else {
         quote! {}
     };
