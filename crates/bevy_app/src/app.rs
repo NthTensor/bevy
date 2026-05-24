@@ -514,8 +514,41 @@ impl App {
     /// App::new()
     ///     .insert_non_send(MyCounter { counter: 0 });
     /// ```
+    #[deprecated(since = "0.20.0", note = "use App::add_non_send")]
     pub fn insert_non_send<R: 'static>(&mut self, resource: R) -> &mut Self {
         self.world_mut().insert_non_send(resource);
+        self
+    }
+
+    /// Attaches [`!Send`](Send) data to the ecs using a custom constructor
+    /// function. Currently the constructor is called immediately, and the
+    /// behavior is identical to `insert_non_send`. In a future release, the
+    /// constructor may instead be called later, on a different thread, as part
+    /// of the [`App::run`] setup.
+    ///
+    /// There is also an [`init_non_send`](Self::init_non_send) for [`!Send`](Send) data
+    /// that implement [`Default`]
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use bevy_app::prelude::*;
+    /// # use bevy_ecs::prelude::*;
+    /// #
+    /// struct MyCounter {
+    ///     counter: usize,
+    /// }
+    ///
+    /// App::new()
+    ///     .add_non_send(|| MyCounter { counter: 0 });
+    /// ```
+    pub fn add_non_send<'app, F, R>(&mut self, func: F) -> &mut Self
+    where
+        F: FnOnce() -> R + Send + 'static,
+        R: 'static,
+    {
+        let value = func();
+        self.world_mut().insert_non_send(value);
         self
     }
 
